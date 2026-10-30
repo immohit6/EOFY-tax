@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>EOFY Tax Workpaper</title>
+<meta name="description" content="An individual tax return workpaper for Australian employees and rideshare drivers. Your data stays on your device.">
+<meta name="theme-color" content="#2d5a46">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EOFY Tax">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a tax-agent workpaper. Summary strip, then one card per return item with the ATO item code chip; queries and document checklist at the end; sticky Save / Download bar. */
+:root{
+  --bg:#f4f5f2; --card:#ffffff; --ink:#1c2420; --muted:#62706a; --rule:#dde2dc;
+  --accent:#2d5a46; --accent-soft:#e3ede7; --on-accent:#ffffff; --field:#fbfcfa;
+  --good:#1f7a3a; --warn:#9a5b00; --warn-soft:#fbefd9; --bad:#b3261e; --tick:#2d5a46;
+  --f-display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Roboto,Arial,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111613; --card:#18201c; --ink:#e4ebe7; --muted:#97a69f; --rule:#29342e;
+  --accent:#86c9a6; --accent-soft:#1f3329; --on-accent:#0d1611; --field:#131a16;
+  --good:#6bd08a; --warn:#f0b45a; --warn-soft:#3a2c15; --bad:#ff8a80; --tick:#86c9a6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111613; --card:#18201c; --ink:#e4ebe7; --muted:#97a69f; --rule:#29342e;
+  --accent:#86c9a6; --accent-soft:#1f3329; --on-accent:#0d1611; --field:#131a16;
+  --good:#6bd08a; --warn:#f0b45a; --warn-soft:#3a2c15; --bad:#ff8a80; --tick:#86c9a6; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body)}
+.wrap{max-width:760px;margin:0 auto;padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(140px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+.eyebrow{font:500 .72rem var(--f-num);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 1.8rem/1.12 var(--f-display);margin:4px 0 6px;text-wrap:balance}
+header p{margin:0;color:var(--muted);max-width:62ch}
+.sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:620px){.sum{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sum div{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:12px 14px;min-width:0}
+.sum .k{font-size:.74rem;color:var(--muted)}
+.sum .v{font:500 1.1rem var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sum .big .v{color:var(--accent)}
+nav.jump{display:flex;gap:8px;flex-wrap:wrap}
+nav.jump a{font-size:.8rem;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:5px 12px;text-decoration:none}
+section{background:var(--card);border:1px solid var(--rule);border-radius:12px;overflow:hidden;scroll-margin-top:16px}
+section>h2{font:700 1.1rem var(--f-display);margin:0;padding:14px 16px 2px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+section>.intro{margin:0;padding:0 16px 10px;color:var(--muted);font-size:.86rem;max-width:64ch}
+h3.sub{font:500 .7rem var(--f-num);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0;padding:12px 16px 4px;border-top:1px solid var(--rule)}
+.code{font:500 .68rem var(--f-num);color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:2px 6px;letter-spacing:.03em;white-space:nowrap}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:10px 16px;border-top:1px solid var(--rule);align-items:center}
+.lab{font-weight:600;min-width:0}
+.hint{display:block;font-weight:400;font-size:.8rem;color:var(--muted)}
+.f{display:flex;align-items:center;gap:6px;background:var(--field);border:1px solid var(--rule);border-radius:8px;padding:0 10px;height:42px}
+.f:focus-within{border-color:var(--accent);outline:2px solid var(--accent-soft)}
+.f span{font-family:var(--f-num);color:var(--muted);font-size:.85rem}
+.f input{border:0;background:transparent;color:var(--ink);font:500 1rem var(--f-num);width:7.5em;outline:none;text-align:right;font-variant-numeric:tabular-nums}
+.f.txt{min-width:0}.f.txt input{text-align:left;width:100%;min-width:10em;font-family:var(--f-body);font-weight:400}
+.gst{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);cursor:pointer;user-select:none}
+.gst input{width:18px;height:18px;accent-color:var(--accent)}
+.res{display:flex;justify-content:space-between;gap:12px;padding:11px 16px;background:var(--accent-soft);font-weight:600;border-top:1px solid var(--rule)}
+.res .n,.ln .n{font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.res.plain{background:transparent;font-weight:500;color:var(--muted)}
+.ln{display:flex;justify-content:space-between;gap:12px;padding:8px 16px;border-top:1px solid var(--rule)}
+.ln .l{display:flex;gap:8px;align-items:baseline;min-width:0}
+.m{display:grid;grid-template-columns:minmax(0,1.1fr) repeat(3,minmax(0,1fr)) auto;gap:8px;padding:10px 16px;border-top:1px solid var(--rule);align-items:center}
+.m .f{padding:0 8px;height:40px}.m .f input{width:100%;min-width:0}
+.m.head{font:500 .7rem var(--f-num);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-top:0;padding-block:4px}
+.m.head span:not(:first-child){text-align:right}
+.x{background:transparent;border:0;color:var(--muted);font-size:1.3rem;min-width:36px;min-height:36px;cursor:pointer;border-radius:8px}
+.x:hover{color:var(--bad)}
+.add{margin:10px 16px 14px;font:500 .9rem var(--f-body);color:var(--accent);background:transparent;border:1px dashed var(--accent);border-radius:10px;padding:9px 14px;cursor:pointer}
+.tog{display:flex;flex-wrap:wrap;gap:14px;padding:10px 16px;border-top:1px solid var(--rule)}
+.choice{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.choice button{font:500 .85rem var(--f-body);color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:999px;padding:7px 12px;cursor:pointer}
+.choice button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.flag{margin:0 16px 14px;padding:10px 12px;border-radius:8px;background:var(--warn-soft);font-size:.85rem;border-left:3px solid var(--warn)}
+.flag.top{margin:0}
+.flag ul{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}
+.ok-note{margin:0 16px 14px;font-size:.85rem;color:var(--good)}
+.docs label{display:flex;gap:10px;align-items:flex-start;padding:10px 16px;border-top:1px solid var(--rule);cursor:pointer}
+.docs input{width:20px;height:20px;margin-top:1px;accent-color:var(--tick);flex:none}
+textarea{display:block;width:calc(100% - 32px);margin:0 16px 14px;min-height:90px;border:1px solid var(--rule);border-radius:8px;background:var(--field);color:var(--ink);font:400 .95rem var(--f-body);padding:8px 10px;resize:vertical}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--rule);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.bar .in{max-width:760px;margin:0 auto;display:flex;gap:8px;align-items:center}
+.st{flex:1;min-width:0;font-size:.82rem;color:var(--muted);display:flex;gap:8px;align-items:center}
+.st span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
+.st.ok .dot{background:var(--good)}.st.dirty .dot{background:var(--warn)}.st.err .dot{background:var(--bad)}
+.btn{font:600 .95rem var(--f-body);border-radius:10px;padding:11px 16px;border:1px solid var(--accent);cursor:pointer;white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn[disabled]{opacity:.55;cursor:default}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+footer{color:var(--muted);font-size:.8rem;max-width:64ch}
+@media (max-width:560px){
+  .m{grid-template-columns:1fr 1fr}.m.head{display:none}.m .mname{grid-column:1/-1}
+  .row{grid-template-columns:1fr}.row .f:not(.txt){justify-self:start}.choice{justify-content:flex-start}
+  #copy{display:none}.btn{padding:11px 12px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Tax workpaper · income year 1 Jul 2025 – 30 Jun 2026</div>
+  <h1>Income, deductions and the return, item by item</h1>
+  <p>Laid out the way a tax agent prepares a return: each figure sits under the ATO item it goes to. Fill in what you have and tick off the documents. Everything saves on this device as you type. <strong>Download</strong> gives you a PDF workpaper to hand to an accountant.</p>
+</header>
+
+<div class="sum" aria-live="polite">
+  <div class="big"><div class="k">Taxable income (est.)</div><div class="v" id="s-ti">$0</div></div>
+  <div><div class="k">Tax withheld</div><div class="v" id="s-tax">$0.00</div></div>
+  <div><div class="k">Rideshare net (P8)</div><div class="v" id="s-biz">$0</div></div>
+  <div><div class="k" id="s-res-k">Est. result</div><div class="v" id="s-res">—</div></div>
+</div>
+<div class="flag top" id="queries-top" hidden></div>
+
+<nav class="jump" aria-label="Jump to section">
+  <a href="#client">Client</a><a href="#wages">Wages</a><a href="#other">Interest and other</a><a href="#uber">Uber</a><a href="#didi">DiDi</a><a href="#p8">Business P8</a><a href="#ded">Deductions</a><a href="#est">Estimate</a><a href="#recon">BAS check</a><a href="#docs">Documents</a><a href="#backup">Backup</a>
+</nav>
+
+<section id="client">
+  <h2>Client details</h2>
+  <p class="intro">What an agent asks before anything else. Don't type your TFN or bank numbers here. Give those to the agent directly.</p>
+  <div class="row"><label class="lab" for="clName">Name on the return</label><div class="f txt"><input id="clName" data-k="cl.name" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="clOcc">Main occupation<span class="hint">Used for the occupation code at item 1</span></label><div class="f txt"><input id="clOcc" data-k="cl.occ" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="clAbn">ABN for the rideshare business</label><div class="f txt"><input id="clAbn" data-k="cl.abn" inputmode="numeric" autocomplete="off"></div></div>
+  <div class="row"><div class="lab">Australian resident for tax all year?<span class="hint">Time overseas doesn't usually change this when your home and work are here. The agent confirms it.</span></div>
+    <div class="choice" data-q="cl.res"><button type="button" data-a="yes">Yes</button><button type="button" data-a="part">Part year</button><button type="button" data-a="unsure">Not sure</button></div></div>
+  <div class="row"><label class="lab" for="clAway">Time outside Australia<span class="hint">Dates, so claims for those weeks can be checked</span></label><div class="f txt"><input id="clAway" data-k="cl.away" autocomplete="off"></div></div>
+  <div class="row"><div class="lab">Spouse at any time in the year?<span class="hint">Spouse details and their income feed the Medicare levy surcharge test</span></div>
+    <div class="choice" data-q="cl.spouse"><button type="button" data-a="yes">Yes</button><button type="button" data-a="no">No</button></div></div>
+  <div class="row" id="spouse-row"><label class="lab" for="clSpInc">Spouse's taxable income<span class="hint">Approximate is fine</span></label><div class="f"><span>$</span><input id="clSpInc" data-k="cl.spInc" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="clDeps">Dependent children</label><div class="f"><input id="clDeps" data-k="cl.deps" inputmode="numeric" autocomplete="off"></div></div>
+  <div class="row"><div class="lab">Private hospital cover <span class="code">M2 · PHI</span><span class="hint">Your insurer's private health insurance statement has what goes in the return</span></div>
+    <div class="choice" data-q="cl.phi"><button type="button" data-a="full">All year</button><button type="button" data-a="part">Part year</button><button type="button" data-a="no">None</button></div></div>
+  <div class="row"><label class="lab" for="clPhiDays">Days with cover<span class="hint">Only if part year</span></label><div class="f"><input id="clPhiDays" data-k="cl.phiDays" inputmode="numeric" autocomplete="off"><span>days</span></div></div>
+  <div class="row"><div class="lab">HELP or other study loan?<span class="hint">Compulsory repayments come out of your refund once income passes the threshold</span></div>
+    <div class="choice" data-q="cl.help"><button type="button" data-a="yes">Yes</button><button type="button" data-a="no">No</button><button type="button" data-a="unsure">Not sure</button></div></div>
+  <div class="row"><div class="lab">Last year's notice of assessment on hand?</div>
+    <div class="choice" data-q="cl.noa"><button type="button" data-a="yes">Yes</button><button type="button" data-a="no">No</button></div></div>
+</section>
+
+<section id="wages">
+  <h2>Employment income <span class="code">Items 1 · 2 · IT1 · IT2</span></h2>
+  <p class="intro">From myGov: ATO, Employment, Income statement. Each should say <strong>Tax ready</strong>. Use the gross amounts, before tax.</p>
+  <h3 class="sub">Employer 1</h3>
+  <div class="row"><label class="lab" for="cName">Payer name</label><div class="f txt"><input id="cName" data-k="c.name" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="cGross">Gross salary and wages <span class="code">Item 1</span></label><div class="f"><span>$</span><input id="cGross" data-k="c.gross" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="cAllow">Allowances <span class="code">Item 2</span></label><div class="f"><span>$</span><input id="cAllow" data-k="c.allow" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="cTax">Tax withheld</label><div class="f"><span>$</span><input id="cTax" data-k="c.tax" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="cRfba">Reportable fringe benefits <span class="code">IT1</span><span class="hint">Salary packaging shows here. Not taxed again, but counts for the surcharge, HELP and offsets.</span></label><div class="f"><span>$</span><input id="cRfba" data-k="c.rfba" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="cResc">Reportable employer super <span class="code">IT2</span><span class="hint">Only salary-sacrificed super, if any</span></label><div class="f"><span>$</span><input id="cResc" data-k="c.resc" inputmode="decimal" autocomplete="off"></div></div>
+  <h3 class="sub">Employer 2</h3>
+  <div class="row"><label class="lab" for="mName">Payer name</label><div class="f txt"><input id="mName" data-k="m.name" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="mGross">Gross salary and wages <span class="code">Item 1</span></label><div class="f"><span>$</span><input id="mGross" data-k="m.gross" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="mAllow">Allowances <span class="code">Item 2</span></label><div class="f"><span>$</span><input id="mAllow" data-k="m.allow" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="mTax">Tax withheld</label><div class="f"><span>$</span><input id="mTax" data-k="m.tax" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="mRfba">Reportable fringe benefits <span class="code">IT1</span></label><div class="f"><span>$</span><input id="mRfba" data-k="m.rfba" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="mResc">Reportable employer super <span class="code">IT2</span></label><div class="f"><span>$</span><input id="mResc" data-k="m.resc" inputmode="decimal" autocomplete="off"></div></div>
+  <h3 class="sub">Employer 3 or agency</h3>
+  <div class="row"><label class="lab" for="xName">Payer name</label><div class="f txt"><input id="xName" data-k="x.name" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="xGross">Gross salary and wages <span class="code">Item 1</span></label><div class="f"><span>$</span><input id="xGross" data-k="x.gross" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="xTax">Tax withheld</label><div class="f"><span>$</span><input id="xTax" data-k="x.tax" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="res"><span>Salary, wages and allowances</span><span class="n" id="o-w">$0.00</span></div>
+</section>
+
+<section id="other">
+  <h2>Interest and other income <span class="code">Items 10 · 24</span></h2>
+  <div class="row"><label class="lab" for="oInt">Gross interest <span class="code">Item 10</span><span class="hint">Every account, your share of joint accounts, and overseas accounts</span></label><div class="f"><span>$</span><input id="oInt" data-k="o.int" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="oTfnw">TFN amounts withheld from interest</label><div class="f"><span>$</span><input id="oTfnw" data-k="o.tfnw" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="oYt">YouTube or other side income<span class="hint">AdSense and sponsors. The agent decides whether it's a hobby or a business</span></label><div class="f"><span>$</span><input id="oYt" data-k="o.yt" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="oOth">Other income <span class="code">Item 24</span><span class="hint">Government payments, foreign income, anything else</span></label><div class="f"><span>$</span><input id="oOth" data-k="o.oth" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="oTax">Tax withheld on those</label><div class="f"><span>$</span><input id="oTax" data-k="o.tax" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="oNote">What is it?</label><div class="f txt"><input id="oNote" data-k="o.note" autocomplete="off"></div></div>
+  <div class="res"><span>Interest and other income</span><span class="n" id="o-o">$0.00</span></div>
+</section>
+
+<section id="uber">
+  <h2>Uber <span class="code">P8 · label J</span></h2>
+  <p class="intro">From your Uber annual tax summary, entered as Uber shows them. Leave blank if you don't drive. Untick GST where an amount carries none. You're registered for GST, so the return uses amounts excluding GST.</p>
+  <div id="uber-rows"></div>
+  <div class="res"><span>Uber income, ex GST</span><span class="n" id="o-ui">$0.00</span></div>
+  <div class="res plain"><span>Uber fees and charges, ex GST</span><span class="n" id="o-uf">$0.00</span></div>
+  <div class="row"><label class="lab" for="uKm">Km with passengers</label><div class="f"><input id="uKm" data-k="ub.km" inputmode="decimal" autocomplete="off"><span>km</span></div></div>
+</section>
+
+<section id="didi">
+  <h2>DiDi <span class="code">P8 · label J</span></h2>
+  <p class="intro">DiDi emails a tax summary each month. Add one row per summary. Leave blank if you don't drive for DiDi.</p>
+  <div class="tog">
+    <label class="gst"><input type="checkbox" id="dIncGst" data-k="d.incGst"> Income includes GST</label>
+    <label class="gst"><input type="checkbox" id="dFeeGst" data-k="d.feeGst"> Fees include GST</label>
+  </div>
+  <div class="m head"><span>Month</span><span>Income</span><span>Fees</span><span>Km</span><span></span></div>
+  <div id="didi-rows"></div>
+  <button type="button" class="add" id="add-didi">Add a month</button>
+  <div class="res"><span>DiDi income, ex GST</span><span class="n" id="o-di">$0.00</span></div>
+  <div class="res plain"><span>DiDi fees, ex GST</span><span class="n" id="o-df">$0.00</span></div>
+  <div class="res plain"><span>DiDi km with passengers</span><span class="n" id="o-dk">0 km</span></div>
+  <div class="flag">Tick "Fees include GST" only if the DiDi summary shows GST on its fee. It has to match what your BAS claimed.</div>
+</section>
+
+<section id="p8">
+  <h2>Business and professional items <span class="code">P8 · Item 15</span></h2>
+  <p class="intro">The rideshare business schedule. Income comes from the Uber and DiDi cards. Car and running costs come from your deductions sheet, less any GST you claimed back on your BAS. The ATO wants whole dollars here.</p>
+  <div class="ln"><span class="l"><span class="code">J</span>Other business income (Uber + DiDi)</span><span class="n" id="p-j">$0</span></div>
+  <div class="ln"><span class="l">Platform fees and charges</span><span class="n" id="p-fees">$0</span></div>
+  <div class="row"><label class="lab" for="bCar">Motor vehicle expenses<span class="hint">Cents per km or logbook claim from the deductions sheet</span></label><div class="f"><span>$</span><input id="bCar" data-k="b.car" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="bOther">All other business expenses<span class="hint">Phone share, cleaning, water, accreditation, bank fees</span></label><div class="f"><span>$</span><input id="bOther" data-k="b.other" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="bDep">Depreciation<span class="hint">Equipment over $300, or the car under the logbook method</span></label><div class="f"><span>$</span><input id="bDep" data-k="b.dep" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="res"><span>Net business income or loss <span class="code">Item 15 B</span></span><span class="n" id="p-net">$0</span></div>
+  <div class="res plain"><span>Small business income tax offset (est.)</span><span class="n" id="p-sbito">$0.00</span></div>
+  <div class="flag" id="ncl-flag" hidden>This is a loss. Non-commercial loss rules usually stop a small side-business loss reducing wage income, so it's deferred instead. The agent checks the tests.</div>
+  <div class="ln"><span class="l">Main business activity</span><span class="n">Ride-sourcing</span></div>
+</section>
+
+<section id="ded">
+  <h2>Work-related and other deductions <span class="code">D1 – D12</span></h2>
+  <p class="intro">Totals for your job and personal claims. The detail sits in your deductions sheet. Rideshare costs belong in P8 above, not here.</p>
+  <div class="row"><label class="lab" for="d1">Work-related car expenses <span class="code">D1</span><span class="hint">Direct trips between two workplaces, not home to work</span></label><div class="f"><span>$</span><input id="d1" data-k="dd.d1" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="d2">Work-related travel <span class="code">D2</span></label><div class="f"><span>$</span><input id="d2" data-k="dd.d2" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="d3">Uniform, laundry, dry cleaning <span class="code">D3</span></label><div class="f"><span>$</span><input id="d3" data-k="dd.d3" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="d4">Self-education <span class="code">D4</span><span class="hint">Courses for your current job</span></label><div class="f"><span>$</span><input id="d4" data-k="dd.d4" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="d5">Other work-related <span class="code">D5</span><span class="hint">Registration, union, phone share, equipment, working from home</span></label><div class="f"><span>$</span><input id="d5" data-k="dd.d5" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="d9">Gifts or donations <span class="code">D9</span></label><div class="f"><span>$</span><input id="d9" data-k="dd.d9" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="d10">Cost of managing tax affairs <span class="code">D10</span><span class="hint">Agent fees, tax software, last year's agent invoice</span></label><div class="f"><span>$</span><input id="d10" data-k="dd.d10" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="d12">Personal super contributions <span class="code">D12</span><span class="hint">Only with an acknowledged notice of intent from your fund</span></label><div class="f"><span>$</span><input id="d12" data-k="dd.d12" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="res"><span>Total deductions</span><span class="n" id="o-ded">$0.00</span></div>
+</section>
+
+<section id="est">
+  <h2>Rough estimate</h2>
+  <p class="intro">2025-26 resident rates. A guide for the conversation with your agent, not the assessment.</p>
+  <div class="ln"><span class="l">Salary, wages and allowances</span><span class="n" id="e-w">$0</span></div>
+  <div class="ln"><span class="l">Interest and other income</span><span class="n" id="e-o">$0</span></div>
+  <div class="ln"><span class="l">Net business income (if a profit)</span><span class="n" id="e-b">$0</span></div>
+  <div class="ln"><span class="l">Less deductions</span><span class="n" id="e-d">$0</span></div>
+  <div class="res"><span>Taxable income</span><span class="n" id="e-ti">$0</span></div>
+  <div class="ln"><span class="l">Tax on taxable income</span><span class="n" id="e-tx">$0.00</span></div>
+  <div class="ln"><span class="l">Less low income tax offset</span><span class="n" id="e-lito">$0.00</span></div>
+  <div class="ln"><span class="l">Less small business income tax offset</span><span class="n" id="e-sb">$0.00</span></div>
+  <div class="ln"><span class="l">Medicare levy</span><span class="n" id="e-ml">$0.00</span></div>
+  <div class="res"><span>Estimated tax for the year</span><span class="n" id="e-tot">$0.00</span></div>
+  <div class="ln"><span class="l">Less tax withheld</span><span class="n" id="e-wh">$0.00</span></div>
+  <div class="res"><span id="e-res-k">Estimated refund</span><span class="n" id="e-res">$0.00</span></div>
+  <div class="flag" id="est-flags" hidden></div>
+</section>
+
+<section id="recon">
+  <h2>BAS cross-check <span class="code">G1</span></h2>
+  <p class="intro">Agents tie the year's rideshare income back to the four BAS you lodged. Enter G1 (total sales, including GST) from each. The total should match the Uber and DiDi gross figures above.</p>
+  <div class="row"><label class="lab" for="q1">Jul – Sep 2025</label><div class="f"><span>$</span><input id="q1" data-k="bas.q1" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="q2">Oct – Dec 2025</label><div class="f"><span>$</span><input id="q2" data-k="bas.q2" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="q3">Jan – Mar 2026</label><div class="f"><span>$</span><input id="q3" data-k="bas.q3" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="row"><label class="lab" for="q4">Apr – Jun 2026</label><div class="f"><span>$</span><input id="q4" data-k="bas.q4" inputmode="decimal" autocomplete="off"></div></div>
+  <div class="ln"><span class="l">G1 total from your BAS</span><span class="n" id="r-g1">$0.00</span></div>
+  <div class="ln"><span class="l">Uber + DiDi gross from the summaries</span><span class="n" id="r-gross">$0.00</span></div>
+  <div class="res"><span>Difference</span><span class="n" id="r-diff">$0.00</span></div>
+  <div class="flag" id="recon-flag" hidden></div>
+  <p class="ok-note" id="recon-ok" hidden>BAS and summaries agree.</p>
+</section>
+
+<section id="docs">
+  <h2>Documents for the agent</h2>
+  <p class="intro">Tick each one when it's ready. The PDF lists what's still missing.</p>
+  <div class="docs" id="doc-list"></div>
+</section>
+
+<section id="notes">
+  <h2>Questions and notes for the agent</h2>
+  <div class="flag" id="queries" hidden></div>
+  <textarea id="nt" data-k="n.text" aria-label="Notes for the agent" placeholder="Anything the agent should know: a new car, a big purchase, a work trip, a letter from the ATO."></textarea>
+</section>
+
+<section id="backup">
+  <h2>Backup</h2>
+  <p class="intro">Your figures live only in this browser on this device. Export a backup before you clear browser data or change phones, then import it on the new device.</p>
+  <div class="tog"><button type="button" class="btn ghost" id="btn-export">Export backup (JSON)</button><button type="button" class="btn ghost" id="btn-import">Import backup</button></div>
+</section>
+<input type="file" id="file" accept="application/json,.json" hidden>
+
+<footer>Rough working figures, not tax advice. Rates are 2025-26 resident rates; a registered tax agent should confirm them. Nothing you type leaves this device. Rideshare income excludes GST because you're registered for GST, as the ATO's 2026 business and professional items instructions require.</footer>
+</div>
+
+<div class="bar">
+  <div class="in">
+    <div class="st" id="st"><span class="dot"></span><span id="st-t">Loading…</span></div>
+    <button class="btn ghost" id="copy" type="button">Copy</button>
+    <button class="btn ghost" id="dl" type="button">Download (PDF)</button>
+    <button class="btn primary" id="save" type="button">Save</button>
+  </div>
+</div>
+
+<script src="vendor/jspdf.umd.min.js"></script>
+<script>
+(function(){
+const UBER=[
+ ["fare","Gross fares","Includes Uber's service fee",true,"in",""],
+ ["city","City fee","",true,"in",""],
+ ["booking","Booking fee","",true,"in",""],
+ ["tolls","Tolls reimbursed","Passed back to you",false,"in",""],
+ ["misc","Miscellaneous income","Bonuses or adjustments. Check whether GST applies",true,"in",""],
+ ["tips","Tips","Normally carry no GST",false,"in",""],
+ ["svc","Uber service fee","Subject to GST per Uber",true,"fee",""],
+ ["oth","Other charges from Uber","",true,"fee",""],
+ ["third","Tolls, airport and government charges","Usually no GST",false,"fee",""]
+];
+const DOCS=[
+ ["is","Income statements from every employer, marked Tax ready","myGov, ATO, Employment"],
+ ["prefill","ATO pre-fill report","Shows interest, government payments and anything the ATO already knows"],
+ ["uber","Uber annual tax summary","Uber driver app or driver portal"],
+ ["didi","All DiDi monthly tax summaries for the year","Emailed each month"],
+ ["bas","Copies of every BAS lodged for the year","To tie G1 and GST credits to the return"],
+ ["bank","Bank interest statements","Every account"],
+ ["phi","Private health insurance statement","If you had cover"],
+ ["maxxia","Salary packaging summary","Reportable fringe benefits"],
+ ["log","Car logbook or a record of how km were worked out","Plus start and end odometer readings"],
+ ["rcpt","Receipts for car, phone and work purchases","Anything over $300 also needs a purchase date"],
+ ["noa","Last year's notice of assessment","Checks carried-forward losses and HELP"],
+ ["ato","Any ATO letters this year","Debts, amendments, audit questions"]
+];
+const DIDI0=[""];
+const blank=()=>({cl:{},
+  c:{},m:{},x:{},o:{},b:{},dd:{},bas:{},n:{},ub:{},docs:{},
+  d:{incGst:true,feeGst:false},uber:Object.fromEntries(UBER.map(r=>[r[0],{v:""}])),
+  didi:DIDI0.map(l=>({l,inc:"",fee:"",km:""}))});
+let S=blank();
+const $=s=>document.querySelector(s);
+const num=v=>{const n=parseFloat(String(v??"").replace(/[^0-9.\-]/g,""));return isFinite(n)?n:0};
+const money=n=>(n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-AU",{minimumFractionDigits:2,maximumFractionDigits:2});
+const whole=n=>(n<0?"−":"")+"$"+Math.floor(Math.abs(n)).toLocaleString("en-AU");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const get=p=>{const [a,b]=p.split(".");return (S[a]||{})[b]};
+const set=(p,v)=>{const [a,b]=p.split(".");S[a]=S[a]||{};S[a][b]=v};
+
+const incomeTax=t=>t<=18200?0:t<=45000?(t-18200)*.16:t<=135000?4288+(t-45000)*.30:t<=190000?31288+(t-135000)*.37:51638+(t-190000)*.45;
+const lito=t=>t<=37500?700:t<=45000?700-(t-37500)*.05:t<=66667?Math.max(0,325-(t-45000)*.015):0;
+const medicare=t=>t<=28011?0:t<=35013?(t-28011)*.10:t*.02;
+
+function uberRow(r){
+  const [id,lab,hint,gst]=r,u=S.uber[id]||{},on=u.gst===undefined?gst:u.gst;
+  return `<div class="row"><label class="lab" for="u-${id}">${esc(lab)}${hint?`<span class="hint">${esc(hint)}</span>`:""}</label>
+   <div style="display:grid;gap:6px;justify-items:end"><div class="f"><span>$</span><input id="u-${id}" data-u="${id}" inputmode="decimal" autocomplete="off" value="${esc(u.v??"")}"></div>
+   <label class="gst"><input type="checkbox" id="ug-${id}" data-ug="${id}" ${on?"checked":""}> includes GST</label></div></div>`;
+}
+function renderUber(){
+  $("#uber-rows").innerHTML=`<h3 class="sub">Income</h3>`+UBER.filter(r=>r[4]==="in").map(uberRow).join("")+`<h3 class="sub">Fees and charges</h3>`+UBER.filter(r=>r[4]==="fee").map(uberRow).join("");
+}
+function renderDidi(){
+  $("#didi-rows").innerHTML=S.didi.map((r,i)=>`<div class="m">
+   <div class="f txt mname"><input id="dm-${i}" aria-label="Month" data-d="${i}.l" value="${esc(r.l)}" placeholder="Month"></div>
+   <div class="f"><input id="di-${i}" aria-label="Income" data-d="${i}.inc" inputmode="decimal" autocomplete="off" value="${esc(r.inc)}" placeholder="Income"></div>
+   <div class="f"><input id="df-${i}" aria-label="Fees" data-d="${i}.fee" inputmode="decimal" autocomplete="off" value="${esc(r.fee)}" placeholder="Fees"></div>
+   <div class="f"><input id="dk-${i}" aria-label="Km" data-d="${i}.km" inputmode="decimal" autocomplete="off" value="${esc(r.km)}" placeholder="Km"></div>
+   <button type="button" class="x" data-del="${i}" aria-label="Remove ${esc(r.l||"month")}">×</button></div>`).join("");
+}
+function renderDocs(){
+  $("#doc-list").innerHTML=DOCS.map(([k,l,h])=>`<label><input type="checkbox" id="doc-${k}" data-doc="${k}" ${S.docs[k]?"checked":""}><span><span class="lab">${esc(l)}</span><span class="hint">${esc(h)}</span></span></label>`).join("");
+}
+function fillSimple(){
+  document.querySelectorAll("[data-k]").forEach(el=>{const v=get(el.dataset.k);if(el.type==="checkbox")el.checked=!!v;else el.value=v??""});
+  document.querySelectorAll(".choice").forEach(g=>{const a=get(g.dataset.q);g.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.a===a)))});
+}
+
+let R={};
+function calc(){
+  const c=S.c,m=S.m,x=S.x,o=S.o,b=S.b,dd=S.dd;
+  const item1=num(c.gross)+num(m.gross)+num(x.gross), item2=num(c.allow)+num(m.allow);
+  const wages=item1+item2;
+  const withheld=num(c.tax)+num(m.tax)+num(x.tax)+num(o.tax)+num(o.tfnw);
+  const rfb=num(c.rfba)+num(m.rfba), resc=num(c.resc)+num(m.resc);
+  const item10=num(o.int), other=num(o.yt)+num(o.oth), oi=item10+other;
+  let ui=0,uf=0,ug=0;
+  for(const r of UBER){const u=S.uber[r[0]]||{},on=u.gst===undefined?r[3]:u.gst,v=num(u.v),ex=on?v/1.1:v;if(r[4]==="in"){ui+=ex;ug+=v}else uf+=ex}
+  let di=0,df=0,dk=0,dg=0;
+  for(const r of S.didi){const v=num(r.inc);dg+=v;di+=S.d.incGst?v/1.1:v;df+=S.d.feeGst?num(r.fee)/1.1:num(r.fee);dk+=num(r.km)}
+  const J=Math.floor(ui+di), fees=Math.ceil(uf+df);
+  const otherExp=Math.ceil(num(b.car)+num(b.other)+num(b.dep));
+  const net=J-fees-otherExp;
+  const ded=["d1","d2","d3","d4","d5","d9","d10","d12"].reduce((a,k)=>a+num(dd[k]),0);
+  const bizPos=Math.max(0,net);
+  const ti=Math.max(0,Math.floor(wages+oi+bizPos-ded));
+  const tx=incomeTax(ti), lo=Math.min(tx,lito(ti));
+  const sb=ti>0?Math.min(1000,Math.max(0,tx-lo)*(bizPos/ti)*.16):0;
+  const ml=medicare(ti), tot=Math.max(0,tx-lo-sb)+ml, res=withheld-tot;
+  const g1=["q1","q2","q3","q4"].reduce((a,k)=>a+num(S.bas[k]),0), gross=ug+dg, diff=g1-gross;
+  const T=(id,v)=>{$(id).textContent=v};
+  T("#o-w",money(wages));T("#o-o",money(oi));
+  T("#o-ui",money(ui));T("#o-uf",money(uf));T("#o-di",money(di));T("#o-df",money(df));T("#o-dk",dk.toLocaleString("en-AU",{maximumFractionDigits:1})+" km");
+  T("#p-j",whole(J));T("#p-fees","−"+whole(fees));T("#p-net",whole(net));T("#p-sbito",money(sb));
+  $("#ncl-flag").hidden=net>=0;
+  T("#o-ded",money(ded));
+  T("#e-w",whole(wages));T("#e-o",whole(oi));T("#e-b",whole(bizPos));T("#e-d","−"+whole(ded));
+  T("#e-ti",whole(ti));T("#e-tx",money(tx));T("#e-lito",money(-lo));T("#e-sb",money(-sb));T("#e-ml",money(ml));
+  T("#e-tot",money(tot));T("#e-wh",money(-withheld));
+  T("#e-res-k",res>=0?"Estimated refund":"Estimated tax to pay");T("#e-res",money(Math.abs(res)));
+  T("#s-ti",whole(ti));T("#s-tax",money(withheld));T("#s-biz",whole(net));
+  T("#s-res-k",res>=0?"Est. refund":"Est. to pay");T("#s-res",item1?money(Math.abs(res)):"Add wages");
+  T("#r-g1",money(g1));T("#r-gross",money(gross));T("#r-diff",money(diff));
+  const rf=$("#recon-flag"),rok=$("#recon-ok");
+  if(g1&&Math.abs(diff)>1){rf.hidden=false;rok.hidden=true;rf.textContent=`Your BAS total is ${money(Math.abs(diff))} ${diff>0?"more":"less"} than the summaries. Find the gap before lodging: a missing DiDi month, a quarter entered after fees, or a different GST setting.`}
+  else{rf.hidden=true;rok.hidden=!(g1&&gross)}
+  $("#spouse-row").hidden=S.cl.spouse!=="yes";
+  const ef=[];
+  if(S.cl.phi==="no"&&ti+rfb+resc>95000) ef.push("No private hospital cover and income for surcharge purposes near or over the singles threshold. The Medicare levy surcharge may apply on top. Fringe benefits count in that test.");
+  if(S.cl.help==="yes") ef.push("A HELP repayment isn't included. It will reduce the refund.");
+  if(rfb) ef.push("Reportable fringe benefits aren't taxed, but they count for the surcharge, HELP and some offsets.");
+  if(S.cl.res&&S.cl.res!=="yes") ef.push("Residency isn't confirmed. Non-resident rates are very different.");
+  const efe=$("#est-flags");efe.hidden=!ef.length;efe.innerHTML=ef.length?"<ul>"+ef.map(e=>"<li>"+esc(e)+"</li>").join("")+"</ul>":"";
+  const q=[],R0={J};
+  if(!num(c.gross)) q.push("Employer 1 income statement figures are missing.");
+      if(num((S.uber.misc||{}).v)) q.push(`Uber "Miscellaneous" of ${money(num(S.uber.misc.v))}: what is it, and did it carry GST?`);
+  if((R0.J||0)>0&&!num(b.car)) q.push("Rideshare motor vehicle expenses (P8) not entered.");
+  if(ug+dg>0&&!g1) q.push("Enter G1 from each BAS to cross-check rideshare income.");
+  if(!S.cl.res) q.push("Confirm residency for the year.");
+  if(!S.cl.phi) q.push("Private hospital cover: all year, part year or none?");
+  const missingDocs=DOCS.filter(d=>!S.docs[d[0]]).length;
+  if(missingDocs) q.push(`${missingDocs} of ${DOCS.length} documents not ticked off yet.`);
+  $("#queries").hidden=!q.length;$("#queries").innerHTML=q.length?"<strong>Open questions</strong><ul>"+q.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>":"";
+  $("#queries-top").hidden=!q.length;$("#queries-top").innerHTML=q.length?`<strong>${q.length} open question${q.length>1?"s":""}</strong> before this is ready for an agent. <a href="#notes" style="color:inherit">See the list</a>`:"";
+  R={item1,item2,wages,withheld,rfb,resc,item10,other,oi,ui,uf,ug,di,df,dk,dg,J,fees,otherExp,net,ded,ti,tx,lo,sb,ml,tot,res,g1,gross,diff,queries:q};
+}
+
+const KEY="eofy-tax-2025-26-v1";
+const st=$("#st"),stT=$("#st-t"),saveBtn=$("#save"),dlBtn=$("#dl");
+const status=(c,t)=>{st.className="st "+c;stT.textContent=t};
+const hhmm=()=>new Date().toLocaleTimeString("en-AU",{hour:"numeric",minute:"2-digit"});
+function persist(){
+  try{localStorage.setItem(KEY,JSON.stringify({...S,savedAt:new Date().toISOString()}));status("ok","Saved on this device at "+hhmm());return true}
+  catch(e){status("err","Couldn't save on this device. Export a backup instead.");return false}
+}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY)||"null");return d&&d.didi?d:null}catch(e){return null}}
+let tmr=null;
+function changed(){calc();clearTimeout(tmr);tmr=setTimeout(persist,300);status("dirty","Saving…")}
+function merge(d){
+  const b=blank(),o={};
+  for(const k of Object.keys(b)){
+    if(k==="didi") o.didi=Array.isArray(d.didi)&&d.didi.length?d.didi:b.didi;
+    else o[k]={...b[k],...(d[k]||{})};
+  }
+  return o;
+}
+saveBtn.addEventListener("click",()=>{clearTimeout(tmr);persist()});
+function saveFile(blob,name,msg){
+  const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  try{const file=new File([blob],name,{type:blob.type});
+    if(mobile&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).catch(()=>{});return}}catch(e){}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);status("ok",msg);
+}
+$("#btn-export").addEventListener("click",()=>saveFile(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}),"eofy-tax-backup-"+new Date().toISOString().slice(0,10)+".json","Backup exported"));
+$("#btn-import").addEventListener("click",()=>$("#file").click());
+$("#file").addEventListener("change",async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{const d=JSON.parse(await f.text());if(!d||!d.didi)throw 0;S=merge(d);paint();persist();status("ok","Backup imported")}
+  catch(err){status("err","That file isn't an EOFY Tax backup")}
+  e.target.value="";
+});
+
+function buildPdf(){
+  const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"});
+  const L=16,Rr=194; let y=18;
+  const page=()=>{if(y>275){doc.addPage();y=18}};
+  const h=t=>{y+=4;page();doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(t,L,y);y+=2;doc.setDrawColor(180);doc.line(L,y,Rr,y);y+=5};
+  const line=(l,v,bold)=>{page();doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(9.5);const ls=doc.splitTextToSize(l,135);doc.text(ls,L,y);if(v!=null)doc.text(String(v).replace("−","-"),Rr,y,{align:"right"});y+=5*ls.length};
+  const txt=t=>{doc.setFont("helvetica","normal");doc.setFontSize(9);doc.splitTextToSize(t.replace(/−/g,"-"),Rr-L).forEach(s=>{page();doc.text(s,L,y);y+=4.5})};
+  const ans=v=>v||"not answered";
+  doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text("Individual tax return workpaper 2025-26",L,y);y+=7;
+  doc.setFont("helvetica","normal");doc.setFontSize(9.5);
+  doc.text(`${S.cl.name||"Client"}${S.cl.occ?" · "+S.cl.occ:""}${S.cl.abn?" · ABN "+S.cl.abn:""}`,L,y);y+=5;
+  doc.text("Prepared "+new Date().toLocaleDateString("en-AU",{day:"numeric",month:"long",year:"numeric"})+". Working figures for a registered tax agent to review.",L,y);y+=4;
+  h("Client details");
+  line("Resident for tax all year",ans(S.cl.res));
+  if(S.cl.away) line("Time outside Australia: "+S.cl.away,null);
+  line("Spouse during the year",ans(S.cl.spouse)+(S.cl.spouse==="yes"&&S.cl.spInc?` · income ${money(num(S.cl.spInc))}`:""));
+  line("Dependent children",S.cl.deps||"0");
+  line("Private hospital cover",ans(S.cl.phi)+(S.cl.phiDays?` · ${S.cl.phiDays} days`:""));
+  line("HELP or study loan",ans(S.cl.help));
+  line("Prior year notice of assessment on hand",ans(S.cl.noa));
+  h("Income");
+  line("Item 1 Salary or wages: "+(S.c.name||"Employer 1"),money(num(S.c.gross)));
+  if(num(S.m.gross)) line("Item 1 Salary or wages: "+(S.m.name||"Employer 2"),money(num(S.m.gross)));
+  if(num(S.x.gross)) line("Item 1 Salary or wages: "+(S.x.name||"Other payer"),money(num(S.x.gross)));
+  line("Item 2 Allowances",money(R.item2));
+  line("Tax withheld (all payers)",money(R.withheld),true);
+  line("IT1 Reportable fringe benefits",money(R.rfb));
+  line("IT2 Reportable employer super",money(R.resc));
+  line("Item 10 Gross interest",money(R.item10));
+  line("Other income"+(S.o.note?` (${S.o.note})`:""),money(R.other));
+  h("Business and professional items: ride-sourcing");
+  line("Uber income ex GST (annual summary)",money(R.ui));
+  line(`DiDi income ex GST (${S.didi.filter(r=>num(r.inc)).length} monthly summaries)`,money(R.di));
+  line("P8 J Other business income",whole(R.J),true);
+  line("Platform fees and charges ex GST",whole(R.fees));
+  line("Motor vehicle expenses",whole(num(S.b.car)));
+  line("All other expenses",whole(num(S.b.other)));
+  line("Depreciation",whole(num(S.b.dep)));
+  line("Item 15 B Net business income or loss",whole(R.net),true);
+  line(`Km with passengers: Uber ${num(S.ub.km)} · DiDi ${R.dk}`,null);
+  line(`GST basis: DiDi income ${S.d.incGst?"incl. GST":"no GST"} · DiDi fees ${S.d.feeGst?"incl. GST":"no GST"} · Uber per line`,null);
+  h("Deductions");
+  [["D1 Work-related car","d1"],["D2 Work-related travel","d2"],["D3 Clothing and laundry","d3"],["D4 Self-education","d4"],["D5 Other work-related","d5"],["D9 Gifts or donations","d9"],["D10 Cost of managing tax affairs","d10"],["D12 Personal super contributions","d12"]].forEach(([l,k])=>line(l,money(num(S.dd[k]))));
+  line("Total deductions",money(R.ded),true);
+  h("Estimate (2025-26 resident rates)");
+  line("Taxable income",whole(R.ti),true);
+  line("Tax on taxable income",money(R.tx));
+  line("Low income tax offset",money(-R.lo));
+  line("Small business income tax offset",money(-R.sb));
+  line("Medicare levy",money(R.ml));
+  line("Estimated tax",money(R.tot),true);
+  line("Tax withheld",money(-R.withheld));
+  line(R.res>=0?"Estimated refund":"Estimated tax to pay",money(Math.abs(R.res)),true);
+  txt("Excludes HELP repayments, the Medicare levy surcharge and any part-year residency adjustment.");
+  h("BAS cross-check (G1, GST-inclusive)");
+  ["Jul–Sep 2025","Oct–Dec 2025","Jan–Mar 2026","Apr–Jun 2026"].forEach((l,i)=>line(l.replace("–","-"),money(num(S.bas["q"+(i+1)]))));
+  line("G1 total",money(R.g1));line("Uber + DiDi gross per summaries",money(R.gross));line("Difference",money(R.diff),true);
+  h("Documents");
+  DOCS.forEach(([k,l])=>line((S.docs[k]?"[x] ":"[  ] ")+l,null));
+  h("Open questions");
+  if(R.queries.length) R.queries.forEach(q=>txt("- "+q)); else txt("None.");
+  if(S.n.text){h("Notes from the client");txt(S.n.text)}
+  const n=doc.getNumberOfPages();
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(120);doc.text(`Working figures only, not tax advice · page ${i} of ${n}`,L,290);doc.setTextColor(0)}
+  return doc.output("arraybuffer");
+}
+dlBtn.addEventListener("click",()=>{
+  let data;
+  try{data=buildPdf()}catch(e){status("err","Couldn't build the PDF here. Use Copy instead.");return}
+  const name=(S.cl.name||"client").replace(/[^A-Za-z0-9]+/g,"_");
+  saveFile(new Blob([data],{type:"application/pdf"}),`Tax_workpaper_2025-26_${name}.pdf`,"PDF created");
+});
+$("#copy").addEventListener("click",async()=>{
+  const lines=["2025-26 tax workpaper",
+   `${S.c.name||"Employer 1"} gross ${S.c.gross||0}, allowances ${S.c.allow||0}, tax ${S.c.tax||0}, RFB ${S.c.rfba||0}`,
+   `${S.m.name||"Employer 2"} gross ${S.m.gross||0}, allowances ${S.m.allow||0}, tax ${S.m.tax||0}, RFB ${S.m.rfba||0}`,
+   `Uber ex GST ${R.ui.toFixed(2)}, fees ${R.uf.toFixed(2)} · DiDi ex GST ${R.di.toFixed(2)}, fees ${R.df.toFixed(2)}`,
+   `P8 net ${R.net} · deductions ${R.ded.toFixed(2)} · taxable ${R.ti} · withheld ${R.withheld.toFixed(2)} · est ${R.res>=0?"refund":"to pay"} ${Math.abs(R.res).toFixed(2)}`];
+  try{await navigator.clipboard.writeText(lines.join("\n"));status("ok","Copied")}
+  catch(e){status("err","Couldn't copy. Take a screenshot instead")}
+});
+
+document.addEventListener("input",e=>{
+  const el=e.target;
+  if(el.dataset.k){set(el.dataset.k,el.type==="checkbox"?el.checked:el.value);return changed()}
+  if(el.dataset.u){S.uber[el.dataset.u]={...(S.uber[el.dataset.u]||{}),v:el.value};return changed()}
+  if(el.dataset.ug){S.uber[el.dataset.ug]={...(S.uber[el.dataset.ug]||{}),gst:el.checked};return changed()}
+  if(el.dataset.d){const [i,f]=el.dataset.d.split(".");S.didi[+i][f]=el.value;return changed()}
+  if(el.dataset.doc){S.docs={...S.docs,[el.dataset.doc]:el.checked};return changed()}
+});
+document.addEventListener("click",e=>{
+  const del=e.target.closest("[data-del]");
+  if(del){S.didi.splice(+del.dataset.del,1);renderDidi();return changed()}
+  const b=e.target.closest(".choice button");
+  if(b){set(b.closest(".choice").dataset.q,b.dataset.a);fillSimple();return changed()}
+});
+$("#add-didi").addEventListener("click",()=>{S.didi.push({l:"",inc:"",fee:"",km:""});renderDidi();changed();
+  const rows=document.querySelectorAll("#didi-rows .mname input");rows[rows.length-1]?.focus()});
+
+function paint(){renderUber();renderDidi();renderDocs();fillSimple();calc()}
+paint();
+const saved=load();
+if(saved){S=merge(saved);paint();status("ok","Loaded from this device")}else status("ok","Nothing saved yet. Figures save on this device as you type");
+if("serviceWorker" in navigator&&location.protocol!=="file:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+</body>
+</html>
